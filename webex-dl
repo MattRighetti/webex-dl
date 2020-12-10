@@ -2,6 +2,23 @@
 
 source scriptUtils.sh
 
+__check_prepreq() {
+    if test ! $(which python3); then
+        fatalln "Could not locate Python3"
+    fi
+
+    if [[ $(/usr/bin/env pip3 list | grep -sE '^selenium\s+[0-9]' >/dev/null) -ne 0 ]]; then
+        errorln "Selenium is not installed"
+        __install_selenium
+    fi
+
+    infoln "All prereqs are satisfied, proceeding..."
+}
+
+__install_selenium() {
+    /usr/bin/env pip3 install selenium
+}
+
 __get_m3u8_link() {
     FILENAME=$1
 
@@ -45,6 +62,7 @@ _run_python_script() {
     ./meeting_link_script.py $EMAIL $CP $PASSWORD $@
 }
 
+__check_prepreq
 _run_python_script $@
 
 if [[ $? -ne 0 ]]; then
