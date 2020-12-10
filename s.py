@@ -14,14 +14,11 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
-url = 'https://politecnicomilano.webex.com/recordingservice/sites/politecnicomilano/recording/playback/d7a1279a4a0f46fd8f219a2936196d20'
-url2 = 'https://politecnicomilano.webex.com/recordingservice/sites/politecnicomilano/recording/playback/762a7768a6024e9083bf79642c4efeb1' # load the web page
-
 def init_driver():
     return webdriver.Safari()
 
-def login_webx(driver, email):
-    driver.get(url)
+def login_webx(driver, email, random_url):
+    driver.get(random_url)
     WebDriverWait(driver, 50).until(EC.visibility_of_element_located((By.ID, "IDToken1")))
     WebDriverWait(driver, 50).until(EC.visibility_of_element_located((By.ID, "IDButton2")))
     text_area = driver.find_element_by_id('IDToken1')
@@ -68,7 +65,7 @@ if __name__ == '__main__':
     printInfoDownload(sys.argv[4:])
     
     driver = init_driver()
-    login_webx(driver, sys.argv[1])
+    login_webx(driver, sys.argv[1], sys.argv[4])
     login_polimi(driver, sys.argv[2], sys.argv[3])
     
     counter = 0

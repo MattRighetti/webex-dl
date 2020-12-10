@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source scriptUtils.sh
+
 __get_m3u8_link() {
     FILENAME=$1
 
@@ -20,9 +22,18 @@ __download_file() {
     URL=$1
     FILENAME=$2
 
+    infoln "Downloading $FILENAME"
+
     ffmpeg -i "$URL" \
         -c copy \
-        -bsf:a aac_adtstoasc "$FILENAME"
+        -bsf:a aac_adtstoasc "$FILENAME" \
+        1>/dev/null 2>&1
+
+    if [[ $? -ne 0 ]]; then
+        errorln "Couldn't download $FILENAME"
+    else
+        successln "$FILENAME successfully downloaded"
+    fi
 }
 
 _run_python_script() {
@@ -37,8 +48,7 @@ _run_python_script() {
 _run_python_script $@
 
 if [[ $? -ne 0 ]]; then
-    echo "Could not download videos"
-    exit 1
+    fatalln "Could not download videos"
 fi
 
 files=($(pwd)/*.html)
@@ -52,11 +62,12 @@ do
     renamed_files+=( "$NFILE" )
     mv $file $NFILE
     echo $LINK > $NFILE
+    infoln "Created $NFILE"
 done
 
 for file in "${renamed_files[@]}"
 do
-    _download_file "$(cat $file)" "${file}.mp4" 
+    __download_file "$(cat $file)" "${file}.mp4"
 done
 
 exit 0
