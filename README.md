@@ -19,7 +19,7 @@ The best way you can use this tool
 2. Put your webex meeting links in a file, i.e. `links.txt`
 3. Execute this command
 ```sh
-cat links | xargs ./webex_downloader.sh name.lastname@mail.polimi.it codicepersona polimi_password
+cat links.txt | xargs ./webex_downloader.sh name.lastname@mail.polimi.it codicepersona polimi_password
 ```
 **Note that codicepersone@polimi.it will not work**
 
@@ -27,8 +27,8 @@ cat links | xargs ./webex_downloader.sh name.lastname@mail.polimi.it codiceperso
 You could alternatively just run
 ```sh
 ./webex_downloader.sh name.lastname@mail.polimi.it codicepersona polimi_password\
-<meeting_link1> \
-<meeting_link2> \
+[meeting_link1] \
+[meeting_link2] \
 ...
-<meeting_linkN>
+[meeting_linkN]
 ```
