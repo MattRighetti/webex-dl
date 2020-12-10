@@ -33,7 +33,7 @@ cat links.txt | xargs ./webex-dl name.lastname@mail.polimi.it codicepersona poli
 You could alternatively just run
 
 ```sh
-./webex_downloader.sh name.lastname@mail.polimi.it codicepersona polimi_password \
+./webex-dl name.lastname@mail.polimi.it codicepersona polimi_password \
 [meeting_link1] \
 [meeting_link2] \
 ...
