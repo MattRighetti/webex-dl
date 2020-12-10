@@ -25,7 +25,7 @@ The best way you can use this tool
 3. Execute this command
 
 ```sh
-cat links.txt | xargs ./webex_downloader.sh name.lastname@mail.polimi.it codicepersona polimi_password
+cat links.txt | xargs ./webex-dl name.lastname@mail.polimi.it codicepersona polimi_password
 ```
 **Note that codicepersone@polimi.it will not work**
 
