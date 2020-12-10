@@ -6,6 +6,7 @@ This tool will use your browser to get the `m3u8` link to the meeting and then u
 **This tool works just with Safari since it's the only browser that exposes direct links to `.m3u8` files**
 
 ## Prerequisites
+- Linux, macOS (this has not been tested on Windows)
 - Safari Browser
 - Python
 
