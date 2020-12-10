@@ -22,3 +22,13 @@ The best way you can use this tool
 cat links | xargs ./webex_downloader.sh name.lastname@mail.polimi.it codicepersona polimi_password
 ```
 **Note that codicepersone@polimi.it will not work**
+
+### Alternative
+You could alternatively just run
+```sh
+./webex_downloader.sh name.lastname@mail.polimi.it codicepersona polimi_password\
+<meeting_link1> \
+<meeting_link2> \
+...
+<meeting_linkN>
+```
