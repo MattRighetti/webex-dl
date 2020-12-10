@@ -10,6 +10,10 @@ This tool will use your browser to get the `m3u8` link to the meeting and then u
 - Safari Browser
 - Python
 
+### Safari Setup
+1. Activate Developer setting (Safari > Preferences > Advanced > Show Develop menu in menu bar)
+2. Activate Remote Automation (Safari > Develop > Allow Remote Automation)
+
 ## Python Packages
 - Selenium
 
