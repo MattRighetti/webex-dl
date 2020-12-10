@@ -42,7 +42,7 @@ _run_python_script() {
     PASSWORD=$3
     shift 3
 
-    ./s.py $EMAIL $CP $PASSWORD $@
+    ./meeting_link_script.py $EMAIL $CP $PASSWORD $@
 }
 
 _run_python_script $@
