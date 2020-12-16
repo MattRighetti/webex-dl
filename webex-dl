@@ -103,7 +103,7 @@ __download_file() {
 
 __check_prepreq
 
-TICKET="'$(cat ticket)'"
+TICKET="'$(cat ticket.txt)'"
 
 DOWNLOAD_FOLDER="$(pwd)/videos"
 infoln "Videos will be saved in ${DOWNLOAD_FOLDER}"
@@ -114,7 +114,7 @@ LINK_FILE="$(pwd)/store.txt"
 while IFS= read -r LINK
 do
     __save_m3u8 $LINK $TICKET $LINK_FILE
-done < links
+done < links.txt
 
 while IFS= read -r LINK
 do
