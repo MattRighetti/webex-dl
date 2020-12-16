@@ -26,7 +26,7 @@ function __get_webex_info() {
     VIDEO_ID=$1
     TICKET_VALUE=$2
 
-    curl "https://politecnicomilano.webex.com/webappng/api/v1/recordings/${VIDEO_ID}/stream?siteurl=politecnicomilano" \
+    curl -s "https://politecnicomilano.webex.com/webappng/api/v1/recordings/${VIDEO_ID}/stream?siteurl=politecnicomilano" \
     -H   "Cookie: ticket=${TICKET_VALUE};"
 }
 
@@ -57,7 +57,7 @@ function __get_xml_link() {
 function __get_file_name() {
     LINK=$1
 
-    curl $LINK | \
+    curl -s $LINK | \
     grep -o -E "<Sequence duration=.*</Sequence>" | \
     sed -E "s/<Sequence.*>(.*)<\/Sequence>/\1/"
 }
