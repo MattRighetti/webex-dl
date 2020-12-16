@@ -1,0 +1,1 @@
+https://nln1vss.webex.com/hls-vod/recordingDir/${recordingDir}/timestamp/${timestamp}/token/${token}/fileName/${fileName}
