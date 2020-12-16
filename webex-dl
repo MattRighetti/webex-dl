@@ -124,4 +124,5 @@ do
     __download_file $M3U8 $DOWNLOAD_FILE
 done < store.txt
 
+infoln "Cleaning folder"
 rm store.txt
