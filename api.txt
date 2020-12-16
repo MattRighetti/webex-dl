@@ -1,0 +1,1 @@
+https://nln1vss.webex.com/apis/html5-pipeline.do?recordingDir=${recordingDir}&timestamp=${timestamp}&token=${token}&xmlName=${xmlName}

@@ -3,36 +3,84 @@
 source scriptUtils.sh
 
 __check_prepreq() {
-    if test ! $(which python3); then
+    if test ! $(which jq); then
         fatalln "Could not locate Python3"
     fi
 
-    if [[ $(/usr/bin/env pip3 list | grep -sE '^selenium\s+[0-9]' >/dev/null) -ne 0 ]]; then
-        errorln "Selenium is not installed"
-        __install_selenium
+    if test ! $(which ffmpeg); then
+        fatalln "Could not locate ffmpeg"
     fi
 
     infoln "All prereqs are satisfied, proceeding..."
 }
 
-__install_selenium() {
-    /usr/bin/env pip3 install selenium
+# Get Video ID
+function __get_id() {
+    LINK=$1
+    
+    echo "${LINK##*/}"
 }
 
-__get_m3u8_link() {
-    FILENAME=$1
+# Get JSON info about the video link
+function __get_webex_info() {
+    VIDEO_ID=$1
+    TICKET_VALUE=$2
 
-    cat $FILENAME | \
-    grep -o -E "<video.*src=\"(.*.m3u8)\">" | \
-    sed -E "s/<video.*src=\"(.*.m3u8)\">/\1/"
+    curl "https://politecnicomilano.webex.com/webappng/api/v1/recordings/${VIDEO_ID}/stream?siteurl=politecnicomilano" \
+    -H   "Cookie: ticket=${TICKET_VALUE};"
 }
 
-__get_title() {
-    FILENAME=$1
+# Get JSON Value
+function __get_json_value() {
+    VALUE=$1
 
-    cat $FILENAME | \
-    grep -o -E "<span title=\"(.*)\".*class=\"recordingTitle\">" | \
-    sed -E "s/.*title=\"(.*)\" class=\"recordingTitle\">/\1/"
+    echo $2 | \
+    jq -r ".mp4StreamOption.${VALUE}"
+}
+
+# Get recording title
+function __get_video_title() {
+    echo $1 | \
+    jq -r ".recordName"
+}
+
+# Get Link to XML file that contains m3u8 file name
+function __get_xml_link() {
+    sed -e "s/\${recordingDir}/$1/" \
+        -e "s/\${timestamp}/$2/" \
+        -e "s/\${token}/$3/" \
+        -e "s/\${xmlName}/$4/" \
+        api.txt
+}
+
+# Get M3U8 Filename
+function __get_file_name() {
+    LINK=$1
+
+    curl $LINK | \
+    grep -o -E "<Sequence duration=.*</Sequence>" | \
+    sed -E "s/<Sequence.*>(.*)<\/Sequence>/\1/"
+}
+
+function __save_m3u8() {
+    URL=$1
+    TICKET=$2
+    VIDEO_ID=$(__get_id ${URL})
+
+    JSON="$(__get_webex_info $VIDEO_ID $TICKET | tr -d ' ')"
+
+    REC_DIR="$(__get_json_value recordingDir ${JSON})"
+    TS="$(__get_json_value timestamp ${JSON})"
+    TOKEN="$(__get_json_value token ${JSON})"
+    XML_NAME="$(__get_json_value xmlName ${JSON})"
+
+    XML_LINK=$(__get_xml_link $REC_DIR $TS $TOKEN $XML_NAME)
+
+    FILENAME=$(__get_file_name $XML_LINK)
+    TITLE="$(__get_video_title ${JSON})"
+    M3U8_LINK="https://nln1vss.webex.com/hls-vod/recordingDir/${REC_DIR}/timestamp/${TS}/token/${TOKEN}/fileName/${FILENAME}.m3u8"
+
+    echo "$TITLE $M3U8_LINK" >> $3
 }
 
 __download_file() {
@@ -53,39 +101,28 @@ __download_file() {
     fi
 }
 
-_run_python_script() {
-    EMAIL=$1
-    CP=$2
-    PASSWORD=$3
-    shift 3
-
-    ./meeting_link_script.py $EMAIL $CP $PASSWORD $@
-}
-
 __check_prepreq
-_run_python_script $@
 
-if [[ $? -ne 0 ]]; then
-    fatalln "Could not download videos"
-fi
+TICKET="'$(cat ticket.txt)'"
 
-files=($(pwd)/*.html)
-renamed_files=()
+DOWNLOAD_FOLDER="$(pwd)/videos"
+infoln "Videos will be saved in ${DOWNLOAD_FOLDER}"
+infoln "Creating folder"
+mkdir -p ${DOWNLOAD_FOLDER}
 
-for file in "${files[@]}"
+LINK_FILE="$(pwd)/store.txt"
+while IFS= read -r LINK
 do
-    TITLE=$(__get_title $file)
-    LINK=$(__get_m3u8_link $file)
-    NFILE="$(pwd)/$TITLE"
-    renamed_files+=( "$NFILE" )
-    mv $file $NFILE
-    echo $LINK > $NFILE
-    infoln "Created $NFILE"
-done
+    __save_m3u8 $LINK $TICKET $LINK_FILE
+done < links.txt
 
-for file in "${renamed_files[@]}"
+while IFS= read -r LINK
 do
-    __download_file "$(cat $file)" "${file}.mp4"
-done
+    FILENAME="$(echo $LINK | awk '{ print $1 }').mp4"
+    DOWNLOAD_FILE="$(pwd)/videos/${FILENAME}"
+    M3U8="$(echo $LINK | awk '{ print $2 }')"
+    __download_file $M3U8 $DOWNLOAD_FILE
+done < store.txt
 
-exit 0
+infoln "Cleaning folder"
+rm store.txt
