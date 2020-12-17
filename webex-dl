@@ -35,13 +35,13 @@ function get_json_value() {
     VALUE=$1
 
     echo $2 | \
-    jq -r ".mp4StreamOption.${VALUE}"
+    jq -r ".mp4StreamOption.${VALUE}" 2>/dev/null
 }
 
 # Get recording title
 function get_video_title() {
     echo $1 | \
-    jq -r ".recordName"
+    jq -r ".recordName" 2>/dev/null
 }
 
 # Get Link to XML file that contains m3u8 file name
@@ -74,13 +74,17 @@ function save_m3u8() {
     TOKEN="$(get_json_value token ${JSON})"
     XML_NAME="$(get_json_value xmlName ${JSON})"
 
+    if [[ $? -ne 0 ]]; then
+        fatalln "Could not parse JSON, is you ticket value still valid?"
+    fi
+
     XML_LINK=$(get_xml_link $REC_DIR $TS $TOKEN $XML_NAME)
 
     FILENAME=$(get_file_name $XML_LINK)
     TITLE="$(get_video_title ${JSON})"
     M3U8_LINK="https://nln1vss.webex.com/hls-vod/recordingDir/${REC_DIR}/timestamp/${TS}/token/${TOKEN}/fileName/${FILENAME}.m3u8"
 
-    echo "$TITLE $M3U8_LINK" >> $3
+    echo "$TITLE,$M3U8_LINK" >> $3
 }
 
 download_file() {
@@ -89,7 +93,7 @@ download_file() {
 
     infoln "Downloading $FILENAME"
 
-    ffmpeg -i "$URL" \
+    ffmpeg -nostdin -i $URL \
         -c copy \
         -bsf:a aac_adtstoasc "$FILENAME" \
         1>/dev/null 2>&1
@@ -110,19 +114,18 @@ infoln "Videos will be saved in ${DOWNLOAD_FOLDER}"
 infoln "Creating folder"
 mkdir -p ${DOWNLOAD_FOLDER}
 
-LINK_FILE="$(pwd)/store.txt"
-while read -r LINK
-do
+LINK_FILE="$(pwd)/store.csv"
+while read LINK; do
     save_m3u8 $LINK $TICKET $LINK_FILE
 done < links.txt
 
-while read -r LINK
-do
-    FILENAME="$(echo $LINK | awk '{ print $1 }').mp4"
+while IFS=, read -r NAME LINK; do
+    FILENAME="${NAME}.mp4"
     DOWNLOAD_FILE="$(pwd)/videos/${FILENAME}"
-    M3U8="$(echo $LINK | awk '{ print $2 }')"
-    download_file $M3U8 $DOWNLOAD_FILE
-done < store.txt
+    download_file "$LINK" "$DOWNLOAD_FILE"
+done < store.csv
+
+exit 0
 
 infoln "Cleaning folder"
 rm store.txt
