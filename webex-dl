@@ -14,6 +14,21 @@ function __check_prepreq() {
     infoln "All prereqs are satisfied, proceeding..."
 }
 
+function __check_exists_folder() {
+    if [[ ! -d $1 ]]; then
+        warnln "$1 folder doesn't exist"
+        warnln "Creating folder"
+        mkdir -p $1
+    fi
+}
+
+function __check_succeeded() {
+    if [[ $? -ne 0 ]]; then
+        warnln "Not succeeded"
+        exit 1
+    fi
+}
+
 # Get Video ID
 function get_id() {
     LINK=$1
@@ -138,12 +153,9 @@ infoln "Videos will be saved in ${DOWNLOAD_FOLDER}"
 LINK_FILE="$(pwd)/store.csv"
 itertxt save_m3u8 $TICKET $LINK_FILE
 
-if [[ ! -d ${DOWNLOAD_FOLDER} ]]; then
-    warnln "${DOWNLOAD_FOLDER} folder doesn't exist"
-    warnln "Creating folder"
-    mkdir -p ${DOWNLOAD_FOLDER}
-fi
+__check_exists_folder $DOWNLOAD_FOLDER
 
+trap "exit" INT
 while IFS=, read -r NAME LINK; do
     FILENAME="${NAME}.mp4"
     DOWNLOAD_FILE="$(pwd)/videos/${FILENAME}"
