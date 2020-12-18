@@ -15,14 +15,14 @@ __check_prepreq() {
 }
 
 # Get Video ID
-function __get_id() {
+function get_id() {
     LINK=$1
     
     echo "${LINK##*/}"
 }
 
 # Get JSON info about the video link
-function __get_webex_info() {
+function get_webex_info() {
     VIDEO_ID=$1
     TICKET_VALUE=$2
 
@@ -31,21 +31,21 @@ function __get_webex_info() {
 }
 
 # Get JSON Value
-function __get_json_value() {
+function get_json_value() {
     VALUE=$1
 
     echo $2 | \
-    jq -r ".mp4StreamOption.${VALUE}"
+    jq -r ".mp4StreamOption.${VALUE}" 2>/dev/null
 }
 
 # Get recording title
-function __get_video_title() {
+function get_video_title() {
     echo $1 | \
-    jq -r ".recordName"
+    jq -r ".recordName" 2>/dev/null
 }
 
 # Get Link to XML file that contains m3u8 file name
-function __get_xml_link() {
+function get_xml_link() {
     sed -e "s/\${recordingDir}/$1/" \
         -e "s/\${timestamp}/$2/" \
         -e "s/\${token}/$3/" \
@@ -54,7 +54,7 @@ function __get_xml_link() {
 }
 
 # Get M3U8 Filename
-function __get_file_name() {
+function get_file_name() {
     LINK=$1
 
     curl -s $LINK | \
@@ -62,34 +62,38 @@ function __get_file_name() {
     sed -E "s/<Sequence.*>(.*)<\/Sequence>/\1/"
 }
 
-function __save_m3u8() {
+function save_m3u8() {
     URL=$1
     TICKET=$2
-    VIDEO_ID=$(__get_id ${URL})
+    VIDEO_ID=$(get_id ${URL})
 
-    JSON="$(__get_webex_info $VIDEO_ID $TICKET | tr -d ' ')"
+    JSON="$(get_webex_info $VIDEO_ID $TICKET | tr -d ' ')"
 
-    REC_DIR="$(__get_json_value recordingDir ${JSON})"
-    TS="$(__get_json_value timestamp ${JSON})"
-    TOKEN="$(__get_json_value token ${JSON})"
-    XML_NAME="$(__get_json_value xmlName ${JSON})"
+    REC_DIR="$(get_json_value recordingDir ${JSON})"
+    TS="$(get_json_value timestamp ${JSON})"
+    TOKEN="$(get_json_value token ${JSON})"
+    XML_NAME="$(get_json_value xmlName ${JSON})"
 
-    XML_LINK=$(__get_xml_link $REC_DIR $TS $TOKEN $XML_NAME)
+    if [[ $? -ne 0 ]]; then
+        fatalln "Could not parse JSON, is you ticket value still valid?"
+    fi
 
-    FILENAME=$(__get_file_name $XML_LINK)
-    TITLE="$(__get_video_title ${JSON})"
+    XML_LINK=$(get_xml_link $REC_DIR $TS $TOKEN $XML_NAME)
+
+    FILENAME=$(get_file_name $XML_LINK)
+    TITLE="$(get_video_title ${JSON})"
     M3U8_LINK="https://nln1vss.webex.com/hls-vod/recordingDir/${REC_DIR}/timestamp/${TS}/token/${TOKEN}/fileName/${FILENAME}.m3u8"
 
-    echo "$TITLE $M3U8_LINK" >> $3
+    echo "$TITLE,$M3U8_LINK" >> $3
 }
 
-__download_file() {
+download_file() {
     URL=$1
     FILENAME=$2
 
     infoln "Downloading $FILENAME"
 
-    ffmpeg -i "$URL" \
+    ffmpeg -nostdin -i $URL \
         -c copy \
         -bsf:a aac_adtstoasc "$FILENAME" \
         1>/dev/null 2>&1
@@ -101,28 +105,32 @@ __download_file() {
     fi
 }
 
+# MAIN SCRIPT
+
+TICKET="$( cat ticket.txt | tr -d ' ' )"
+
 __check_prepreq
 
-TICKET="'$(cat ticket.txt)'"
-
-DOWNLOAD_FOLDER="$(pwd)/videos"
+DOWNLOAD_FOLDER=$(jq .download_folder config.json | tr -d '"')
 infoln "Videos will be saved in ${DOWNLOAD_FOLDER}"
-infoln "Creating folder"
-mkdir -p ${DOWNLOAD_FOLDER}
 
-LINK_FILE="$(pwd)/store.txt"
-while IFS= read -r LINK
-do
-    __save_m3u8 $LINK $TICKET $LINK_FILE
+if [[ ! -d ${DOWNLOAD_FOLDER} ]]; then
+    infoln "Creating folder"
+    mkdir -p ${DOWNLOAD_FOLDER}
+fi
+
+LINK_FILE="$(pwd)/store.csv"
+while read LINK; do
+    save_m3u8 $LINK $TICKET $LINK_FILE
 done < links.txt
 
-while IFS= read -r LINK
-do
-    FILENAME="$(echo $LINK | awk '{ print $1 }').mp4"
+while IFS=, read -r NAME LINK; do
+    FILENAME="${NAME}.mp4"
     DOWNLOAD_FILE="$(pwd)/videos/${FILENAME}"
-    M3U8="$(echo $LINK | awk '{ print $2 }')"
-    __download_file $M3U8 $DOWNLOAD_FILE
-done < store.txt
+    download_file "$LINK" "$DOWNLOAD_FILE"
+done < store.csv
+
+exit 0
 
 infoln "Cleaning folder"
 rm store.txt
