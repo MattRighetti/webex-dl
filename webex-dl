@@ -2,7 +2,7 @@
 
 source scriptUtils.sh
 
-__check_prepreq() {
+function __check_prepreq() {
     if test ! $(which jq); then
         fatalln "Could not locate Python3"
     fi
@@ -12,6 +12,21 @@ __check_prepreq() {
     fi
 
     infoln "All prereqs are satisfied, proceeding..."
+}
+
+function __check_exists_folder() {
+    if [[ ! -d $1 ]]; then
+        warnln "$1 folder doesn't exist"
+        warnln "Creating folder"
+        mkdir -p $1
+    fi
+}
+
+function __check_succeeded() {
+    if [[ $? -ne 0 ]]; then
+        warnln "Not succeeded"
+        exit 1
+    fi
 }
 
 # Get Video ID
@@ -87,7 +102,7 @@ function save_m3u8() {
     echo "$TITLE,$M3U8_LINK" >> $3
 }
 
-download_file() {
+function download_file() {
     URL=$1
     FILENAME=$2
 
@@ -105,7 +120,28 @@ download_file() {
     fi
 }
 
-# MAIN SCRIPT
+function itertxt() {
+    totalLines=$(wc -l links.txt | awk '{ print $1 }')
+    barLen=$(( $totalLines * 2 ))
+    BAR="$(print_times "#" $barLen)"
+    FILL="$(print_times "-" $barLen)"
+
+    LINK_FILE="$(pwd)/store.csv"
+
+    count=0
+    while read LINK; do
+        # update progress bar
+        count=$(( $count + 1 ))
+        percent=$(( ($count * 100 / $totalLines * 100) / 100 ))
+        i=$(( $percent * $barLen / 100 ))
+        echo -ne "\r${C_RED}Creating CSV file with links to M3U8 file [${BAR:0:$i}${FILL:$i:$barLen}] $count/$totalLines ($percent%)${C_RESET}"
+        # exec
+        $1 $LINK $2 $3
+    done < links.txt
+    echo -ne "\n${C_GREEN}Completed${C_RESET}\n"
+}
+
+# MAIN
 
 TICKET="$( cat ticket.txt | tr -d ' ' )"
 
@@ -114,23 +150,14 @@ __check_prepreq
 DOWNLOAD_FOLDER=$(jq .download_folder config.json | tr -d '"')
 infoln "Videos will be saved in ${DOWNLOAD_FOLDER}"
 
-if [[ ! -d ${DOWNLOAD_FOLDER} ]]; then
-    infoln "Creating folder"
-    mkdir -p ${DOWNLOAD_FOLDER}
-fi
-
 LINK_FILE="$(pwd)/store.csv"
-while read LINK; do
-    save_m3u8 $LINK $TICKET $LINK_FILE
-done < links.txt
+itertxt save_m3u8 $TICKET $LINK_FILE
 
+__check_exists_folder $DOWNLOAD_FOLDER
+
+trap "exit" INT
 while IFS=, read -r NAME LINK; do
     FILENAME="${NAME}.mp4"
     DOWNLOAD_FILE="$(pwd)/videos/${FILENAME}"
     download_file "$LINK" "$DOWNLOAD_FILE"
 done < store.csv
-
-exit 0
-
-infoln "Cleaning folder"
-rm store.txt

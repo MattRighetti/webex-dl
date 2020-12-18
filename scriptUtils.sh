@@ -37,7 +37,16 @@ function fatalln() {
   exit 1
 }
 
+# print_times prints char specifies at $1 n times (n specifies at $2)
+function print_times() {
+    str=$1
+    num=$2
+    v=$(printf "%-${num}s" "$str")
+    echo -ne "${v// /${str}}"
+}
+
 export -f errorln
 export -f successln
 export -f infoln
 export -f warnln
+export -f print_times
