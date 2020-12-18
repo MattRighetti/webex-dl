@@ -45,6 +45,17 @@ function print_times() {
     echo -ne "${v// /${str}}"
 }
 
+function prettytime() {
+    local minutes=$(( $1 / 60 ))
+    local seconds=$(( $1 % 60 ))
+
+    if [[ $minutes -ge 1 ]]; then
+        echo -ne "${minutes}m ${seconds}s"
+    else 
+        echo -ne "${seconds}s"
+    fi
+}
+
 export -f errorln
 export -f successln
 export -f infoln

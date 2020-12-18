@@ -22,3 +22,6 @@ The best way you can use this tool
 ```sh
 $ webex-dl
 ```
+
+If everything executes correctly you will get something similar to this
+![webex-dl](screenshots/webex-dl.png)
