@@ -106,17 +106,19 @@ function download_file() {
     URL=$1
     FILENAME=$2
 
-    infoln "Downloading $FILENAME"
-
+    infoln "Downloading -> ${FILENAME##*/}"
+    start_time=$(date +%s)
     ffmpeg -nostdin -i $URL \
         -c copy \
         -bsf:a aac_adtstoasc "$FILENAME" \
         1>/dev/null 2>&1
+    end_time=$(date +%s)
+    runtime=$(prettytime "$(( $end_time-$start_time ))")
 
     if [[ $? -ne 0 ]]; then
-        errorln "Couldn't download $FILENAME"
+        errorln "Couldn't download ${FILENAME##*/}"
     else
-        successln "$FILENAME successfully downloaded"
+        successln "${FILENAME##*/} successfully downloaded in ${runtime}"
     fi
 }
 
