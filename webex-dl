@@ -105,14 +105,19 @@ download_file() {
     fi
 }
 
-__check_prepreq
+# MAIN SCRIPT
 
 TICKET="$( cat ticket.txt | tr -d ' ' )"
 
-DOWNLOAD_FOLDER="$(pwd)/videos"
+__check_prepreq
+
+DOWNLOAD_FOLDER=$(jq .download_folder config.json | tr -d '"')
 infoln "Videos will be saved in ${DOWNLOAD_FOLDER}"
-infoln "Creating folder"
-mkdir -p ${DOWNLOAD_FOLDER}
+
+if [[ ! -d ${DOWNLOAD_FOLDER} ]]; then
+    infoln "Creating folder"
+    mkdir -p ${DOWNLOAD_FOLDER}
+fi
 
 LINK_FILE="$(pwd)/store.csv"
 while read LINK; do
