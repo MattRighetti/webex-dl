@@ -122,65 +122,87 @@ function download_file() {
     fi
 }
 
-# PARSE ARGS
 
+# GLOBAL
+PROCESSES=1
+VERBOSE=false
+
+# PARSE ARGS
 while [[ $# -ge 1 ]]
 do
 key="$1"
-case $key in
-    -f|--file)
-    if [[ ! -z "$2" ]]; then
-        LINKS_FILE=$2
-    else
-        fatalln "You have not provided enough arguments for flag -f, --file"
-    fi
-    shift
-    shift
-    ;;
-    -i)
-    shift
-    ;;
-    -t|--ticket)
-    TICKET=$2
-    shift
-    shift
-    ;;
-    -tf|--ticket-file)
-    if [[ ! -z "$2" ]]; then
-        TICKET_FILE=$2
-    else
-        fatalln "You have not provided enough arguments for flag -f, --file"
-    fi
-    shift
-    shift
-    ;;
-    -h|--help)
-    echo "Webex-dl is a script tool that downloads Webex meetings that you pass to it"
-    echo "Usage: webex-dl [ -f links_file ] [ -tf ticket_file ] [ -t ticket ] [ -i links ]"
-    echo ""
-    echo "       Command summary:"
-    echo "       -f, --file             Use links contained in file"
-    echo "       -t, --ticket           Input ticket from command line"
-    echo "       -tf, --ticket-file     Use ticket contained in file"
-    echo "       -i                     Input links from command line and don't use file input"
-    echo "       -h, --help             Print info about the program"
-    exit 0
-    ;;
-    -*|--*=)
-    echo "Error: Unsupported flag $1" >&2
-    exit 1
-    ;;
-    *)
-    LINKS+=( "$1" )
-    shift
-    ;;
-esac
+    case $key in
+        -f|--file)
+        if [[ ! -z "$2" ]]; then
+            LINKS_FILE=$2
+        else
+            fatalln "You have not provided enough arguments for flag -f, --file"
+        fi
+        shift
+        shift
+        ;;
+        -i)
+        shift
+        ;;
+        -t|--ticket)
+        TICKET=$2
+        shift
+        shift
+        ;;
+        -tf|--ticket-file)
+        if [[ ! -z "$2" ]]; then
+            TICKET_FILE=$2
+        else
+            fatalln "You have not provided enough arguments for flag -f, --file"
+        fi
+        shift
+        shift
+        ;;
+        -p)
+        if [[ ! -z "$2" ]]; then
+            PROCESSES=$2
+        else
+            fatalln "You have not provided enough arguments for flag -p"
+        fi
+        shift
+        shift
+        ;;
+        -v)
+        VERBOSE=true
+        shift
+        ;;
+        -h|--help)
+        echo "Webex-dl is a script tool that downloads Webex meetings that you pass to it"
+        echo "Usage: webex-dl [ -f links_file ] [ -tf ticket_file ] [ -t ticket ] [ -i links ]"
+        echo ""
+        echo "       Command summary:"
+        echo "       -f, --file             Use links contained in file"
+        echo "       -t, --ticket           Input ticket from command line"
+        echo "       -tf, --ticket-file     Use ticket contained in file"
+        echo "       -i                     Input links from command line and don't use file input"
+        echo "       -p                     Launches specified number of processes"
+        echo "       -v                     Output verbose logs"
+        echo "       -h, --help             Print info about the program"
+        exit 0
+        ;;
+        -*|--*=)
+        echo "Error: Unsupported flag $1" >&2
+        exit 1
+        ;;
+        *)
+        LINKS+=( "$1" )
+        shift
+        ;;
+    esac
 done
 
-infoln "LINKS_FILE=$LINKS_FILE"
-infoln "LINKS=$LINKS"
-infoln "TICKET=$TICKET"
-infoln "TICKET_FILE=$TICKET_FILE"
+if [[ "$VERBOSE" = true ]]; then
+    debugln "LINKS_FILE=$LINKS_FILE"
+    debugln "LINKS=$LINKS"
+    debugln "TICKET=$TICKET"
+    debugln "TICKET_FILE=$TICKET_FILE"
+    debugln "PROCESSES=$PROCESSES"
+fi
 
 if [[ -z $LINKS_FILE  ]] && [[ -z $LINKS ]]; then
     fatalln "No link or link file has been specified"
@@ -200,10 +222,11 @@ if [[ ! -z $TICKET_FILE  ]] && [[ ! -z $TICKET ]]; then
 fi
 
 # MAIN
-
-if [[ -z TICKET ]]; then
+set -x
+if [[ -z $TICKET ]]; then
     TICKET="$( cat ${TICKET_FILE} | tr -d ' ' )"
 fi
+set +x
 
 __check_prepreq
 
@@ -223,9 +246,12 @@ done
 
 __check_exists_folder $DOWNLOAD_FOLDER
 
+i=0
 trap "exit" INT
 while IFS=, read -r NAME LINK; do
-    FILENAME="${NAME}.mp4"
-    DOWNLOAD_FILE="$(pwd)/videos/${FILENAME}"
-    download_file "$LINK" "$DOWNLOAD_FILE"
+    ((i=i%PROCESSES)); ((i++==0)) && wait
+    download_file "$LINK" "${DOWNLOAD_FOLDER}/${NAME}.mp4" &
 done < store.csv
+wait
+
+exit 0

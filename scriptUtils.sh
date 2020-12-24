@@ -5,6 +5,7 @@ C_RED='\033[0;31m'
 C_GREEN='\033[0;32m'
 C_BLUE='\033[0;34m'
 C_YELLOW='\033[1;33m'
+C_PURPLE='\033[1;35m'
 
 # println echos string
 function println() {
@@ -13,7 +14,7 @@ function println() {
 
 # errorln echos i red color
 function errorln() {
-  println "${C_RED}${1}${C_RESET}"
+  println "${C_RED}${1}${C_RESET}" >&2
 }
 
 # successln echos in green color
@@ -24,6 +25,10 @@ function successln() {
 # infoln echos in blue color
 function infoln() {
   println "${C_BLUE}${1}${C_RESET}"
+}
+
+function debugln() {
+    println "${C_PURPLE}${1}${C_RESET}"
 }
 
 # warnln echos in yellow color
@@ -60,4 +65,5 @@ export -f errorln
 export -f successln
 export -f infoln
 export -f warnln
+export -f debugln
 export -f print_times
