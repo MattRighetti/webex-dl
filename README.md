@@ -8,6 +8,20 @@ This tool will download the meeting recordings that you specify
 - [`jq`](https://github.com/stedolan/jq)
 - `ffmpeg`
 
+## Commands
+```
+Usage: webex-dl [ -f links_file ] [ -tf ticket_file ] [ -t ticket ] [ -i links ]
+
+       Command summary:
+       -f, --file             Use links contained in file
+       -t, --ticket           Input ticket from command line
+       -tf, --ticket-file     Use ticket contained in file
+       -i                     Input links from command line and don't use file input
+       -p                     Launches specified number of processes
+       -v                     Output verbose logs
+       -h, --help             Print info about the program
+```
+
 ## How to use
 The best way you can use this tool
 
@@ -20,7 +34,30 @@ The best way you can use this tool
 5. Execute this command
 
 ```sh
-$ webex-dl
+$ webex-dl -tf ticket.txt -f links.txt
+```
+
+You can also provide links directly from command line
+
+```sh
+$ webex-dl -tf ticket.txt -i link1 link2 link3 ...
+```
+
+And you can also pass the ticket directly from command line
+
+```sh
+$ webex-dl -t <ticket_value> -i <link1> <link2> <link3> ...
+```
+
+## Multiprocess
+This tool can run multiple downloads in parallel by using multiprocessing, this feature is intended only for people that have a good internet connection.
+
+You can specify how many parallel downloads you want by using the `-p` command flag
+
+This command will download 5 meetings concurrently
+
+```sh
+$ webex-dl -tf ticket.txt -f links.txt -p 5
 ```
 
 If everything executes correctly you will get something similar to this
