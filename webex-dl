@@ -222,11 +222,9 @@ if [[ ! -z $TICKET_FILE  ]] && [[ ! -z $TICKET ]]; then
 fi
 
 # MAIN
-set -x
 if [[ -z $TICKET ]]; then
     TICKET="$( cat ${TICKET_FILE} | tr -d ' ' )"
 fi
-set +x
 
 __check_prepreq
 
