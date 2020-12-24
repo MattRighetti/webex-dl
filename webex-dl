@@ -122,38 +122,104 @@ function download_file() {
     fi
 }
 
-function itertxt() {
-    totalLines=$(wc -l links.txt | awk '{ print $1 }')
-    barLen=$(( $totalLines * 2 ))
-    BAR="$(print_times "#" $barLen)"
-    FILL="$(print_times "-" $barLen)"
+# PARSE ARGS
 
-    LINK_FILE="$(pwd)/store.csv"
+while [[ $# -ge 1 ]]
+do
+key="$1"
+case $key in
+    -f|--file)
+    if [[ ! -z "$2" ]]; then
+        LINKS_FILE=$2
+    else
+        fatalln "You have not provided enough arguments for flag -f, --file"
+    fi
+    shift
+    shift
+    ;;
+    -i)
+    shift
+    ;;
+    -t|--ticket)
+    TICKET=$2
+    shift
+    shift
+    ;;
+    -tf|--ticket-file)
+    if [[ ! -z "$2" ]]; then
+        TICKET_FILE=$2
+    else
+        fatalln "You have not provided enough arguments for flag -f, --file"
+    fi
+    shift
+    shift
+    ;;
+    -h|--help)
+    echo "Webex-dl is a script tool that downloads Webex meetings that you pass to it"
+    echo "Usage: webex-dl [ -f links_file ] [ -tf ticket_file ] [ -t ticket ] [ -i links ]"
+    echo ""
+    echo "       Command summary:"
+    echo "       -f, --file             Use links contained in file"
+    echo "       -t, --ticket           Input ticket from command line"
+    echo "       -tf, --ticket-file     Use ticket contained in file"
+    echo "       -i                     Input links from command line and don't use file input"
+    echo "       -h, --help             Print info about the program"
+    exit 0
+    ;;
+    -*|--*=)
+    echo "Error: Unsupported flag $1" >&2
+    exit 1
+    ;;
+    *)
+    LINKS+=( "$1" )
+    shift
+    ;;
+esac
+done
 
-    count=0
-    while read LINK; do
-        # update progress bar
-        count=$(( $count + 1 ))
-        percent=$(( ($count * 100 / $totalLines * 100) / 100 ))
-        i=$(( $percent * $barLen / 100 ))
-        echo -ne "\r${C_RED}Creating CSV file with links to M3U8 file [${BAR:0:$i}${FILL:$i:$barLen}] $count/$totalLines ($percent%)${C_RESET}"
-        # exec
-        $1 $LINK $2 $3
-    done < links.txt
-    echo -ne "\n${C_GREEN}Completed${C_RESET}\n"
-}
+infoln "LINKS_FILE=$LINKS_FILE"
+infoln "LINKS=$LINKS"
+infoln "TICKET=$TICKET"
+infoln "TICKET_FILE=$TICKET_FILE"
+
+if [[ -z $LINKS_FILE  ]] && [[ -z $LINKS ]]; then
+    fatalln "No link or link file has been specified"
+fi
+
+if [[ ! -z $LINKS_FILE  ]] && [[ ! -z $LINKS ]]; then
+    warnln "You have given a link file and more input links, only the file links will be downloaded"
+    LINKS=()
+fi
+
+if [[ -z $TICKET_FILE  ]] && [[ -z $TICKET ]]; then
+    fatalln "No ticket or ticket file has been specified"
+fi
+
+if [[ ! -z $TICKET_FILE  ]] && [[ ! -z $TICKET ]]; then
+    warnln "You have given a ticket file and a ticket input, only the ticket file will be used"
+fi
 
 # MAIN
 
-TICKET="$( cat ticket.txt | tr -d ' ' )"
+if [[ -z TICKET ]]; then
+    TICKET="$( cat ${TICKET_FILE} | tr -d ' ' )"
+fi
 
 __check_prepreq
 
 DOWNLOAD_FOLDER=$(jq .download_folder config.json | tr -d '"')
 infoln "Videos will be saved in ${DOWNLOAD_FOLDER}"
+GEN_LINK_FILE="$(pwd)/store.csv"
 
-LINK_FILE="$(pwd)/store.csv"
-itertxt save_m3u8 $TICKET $LINK_FILE
+if [[ ${#LINKS[@]} -eq 0 ]]; then
+    while read LINK; do
+        LINKS+=( "$LINK" )
+    done < $LINKS_FILE
+fi
+
+for link in "${LINKS[@]}"; do
+    save_m3u8 $link $TICKET $GEN_LINK_FILE
+done
 
 __check_exists_folder $DOWNLOAD_FOLDER
 
