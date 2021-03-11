@@ -8,6 +8,8 @@ This tool will download the meeting recordings that you specify
 - [`jq`](https://github.com/stedolan/jq)
 - `ffmpeg`
 
+**NB: macOS requires GNU versions of the sed and grep commands that can be installed easily via Homebrew**
+
 ## Commands
 ```
 Usage: webex-dl [ -f links_file ] [ -tf ticket_file ] [ -t ticket ] [ -i links ]
@@ -21,6 +23,13 @@ Usage: webex-dl [ -f links_file ] [ -tf ticket_file ] [ -t ticket ] [ -i links ]
        -v                     Output verbose logs
        -h, --help             Print info about the program
 ```
+
+## How to get the correct links to use
+1. Open the link to the webex meeting recording that has been given to you
+2. Log in to webex if required
+3. Use the link to which you are redirected when the webex meeting player is visible
+
+**Notice that the shared link is different from the one you need to use**
 
 ## How to use
 The best way you can use this tool

@@ -32,8 +32,16 @@ function __check_succeeded() {
 # Get Video ID
 function get_id() {
     LINK=$1
-    
-    echo "${LINK##*/}"
+
+    # There can be a lot of different URLs here
+    # RCID Version looks something like this: https://politecnicomilano.webex.com/politecnicomilano/ldr.php?RCID=68510a8db550408aa72b6271738052eb
+    # Another exalple                       : https://politecnicomilano.webex.com/politecnicomilano/ldr.php?RCID=898ac5fd9e684b0c91c7fcb865fb0920
+
+    # Other examples have the RCID code diretcly after the last url component
+    # An example is this URL: https://politecnicomilano.webex.com/politecnicomilano/play/68510a8db550408aa72b6271738052eb
+
+    # The code for all these examples corresponds to the regex -> [A-Za-z0-9]{32}
+    echo $LINK | grep -oE '[A-Za-z0-9]{32}'
 }
 
 # Get JSON info about the video link
@@ -73,7 +81,7 @@ function get_file_name() {
     LINK=$1
 
     curl -s $LINK | \
-    grep -o -E "<Sequence duration=.*</Sequence>" | \
+    grep -oE "<Sequence duration=.*</Sequence>" | \
     sed -E "s/<Sequence.*>(.*)<\/Sequence>/\1/"
 }
 
@@ -90,7 +98,7 @@ function save_m3u8() {
     XML_NAME="$(get_json_value xmlName ${JSON})"
 
     if [[ $? -ne 0 ]]; then
-        fatalln "Could not parse JSON, is you ticket value still valid?"
+        fatalln "Could not parse JSON, is you ticket value still valid?\nDid you use the correct link?"
     fi
 
     XML_LINK=$(get_xml_link $REC_DIR $TS $TOKEN $XML_NAME)
@@ -221,7 +229,9 @@ if [[ ! -z $TICKET_FILE  ]] && [[ ! -z $TICKET ]]; then
     warnln "You have given a ticket file and a ticket input, only the ticket file will be used"
 fi
 
-# MAIN
+########
+# MAIN #
+########
 if [[ -z $TICKET ]]; then
     TICKET="$( cat ${TICKET_FILE} | tr -d ' ' )"
 fi
@@ -231,6 +241,11 @@ __check_prepreq
 DOWNLOAD_FOLDER=$(jq .download_folder config.json | tr -d '"')
 infoln "Videos will be saved in ${DOWNLOAD_FOLDER}"
 GEN_LINK_FILE="$(pwd)/store.csv"
+
+if [ -f $GEN_LINK_FILE ]; then
+    infoln "Deleting pre-existent link file"
+    rm $GEN_LINK_FILE
+fi
 
 if [[ ${#LINKS[@]} -eq 0 ]]; then
     while read LINK; do
